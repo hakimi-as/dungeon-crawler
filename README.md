@@ -2,6 +2,8 @@
 
 > **Descend. Survive. Conquer.**
 
+**[▶ Play Live](https://dungeonscrawlers.netlify.app/)**
+
 A first-person 3D dungeon crawler built entirely in the browser — no build step, no bundler, no install. Pure ES modules, Three.js from CDN, and procedural Web Audio.
 
 ---
