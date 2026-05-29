@@ -1,10 +1,21 @@
 # DUNGEON CRAWLER
 
-> **Descend. Survive. Conquer.**
+<div align="center">
 
-**[▶ Play Live](https://dungeonscrawlers.netlify.app/)**
+### *Descend. Survive. Conquer.*
 
-A first-person 3D dungeon crawler built entirely in the browser — no build step, no bundler, no install. Pure ES modules, Three.js from CDN, and procedural Web Audio.
+<br>
+
+[![Play Now](https://img.shields.io/badge/▶%20%20PLAY%20NOW-dungeonscrawlers.netlify.app-ffd060?style=for-the-badge&labelColor=060810&logo=netlify&logoColor=00C7B7)](https://dungeonscrawlers.netlify.app/)&nbsp;&nbsp;[![GitHub](https://img.shields.io/badge/Source-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/hakimi-as/dungeon-crawler)
+
+<br>
+
+*A first-person 3D dungeon crawler built entirely in the browser.*
+*No build step · No bundler · No install · Zero dependencies.*
+
+</div>
+
+---
 
 ---
 
