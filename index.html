@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dungeon Crawler</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Main menu -->
+  <div id="overlay">
+    <div class="menu-card">
+      <div class="menu-title-row">
+        <span class="menu-deco">⚔</span>
+        <h1>DUNGEON CRAWLER</h1>
+        <span class="menu-deco">⚔</span>
+      </div>
+      <p class="menu-tagline">Descend. Survive. Conquer.</p>
+      <button id="btn-start">BEGIN DESCENT</button>
+      <div class="menu-divider"></div>
+      <div class="menu-controls">
+        <div class="ctrl-row"><span class="ctrl-key">WASD</span><span class="ctrl-desc">Move</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">SHIFT</span><span class="ctrl-desc">Sprint</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">SPACE</span><span class="ctrl-desc">Dodge / Roll</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">F / CLICK</span><span class="ctrl-desc">Attack / Cast staff</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">Q</span><span class="ctrl-desc">Use equipped spell</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">E</span><span class="ctrl-desc">Pick up / Open / Shop</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">G</span><span class="ctrl-desc">Quick-use potion</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">I</span><span class="ctrl-desc">Inventory</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">M</span><span class="ctrl-desc">Full map</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">ESC</span><span class="ctrl-desc">Pause</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause menu -->
+  <div id="pause-menu">
+    <div class="menu-card">
+      <h2 class="pause-title">PAUSED</h2>
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-restart-pause" class="btn-secondary">RESTART</button>
+      <div class="menu-divider"></div>
+      <div class="menu-controls">
+        <div class="ctrl-row"><span class="ctrl-key">WASD</span><span class="ctrl-desc">Move</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">SHIFT</span><span class="ctrl-desc">Sprint</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">SPACE</span><span class="ctrl-desc">Dodge / Roll</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">F / CLICK</span><span class="ctrl-desc">Attack</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">G</span><span class="ctrl-desc">Quick-use potion</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">E</span><span class="ctrl-desc">Pick up</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">I</span><span class="ctrl-desc">Inventory</span></div>
+        <div class="ctrl-row"><span class="ctrl-key">M</span><span class="ctrl-desc">Full map</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Centre crosshair -->
+  <div id="crosshair"></div>
+
+  <!-- Incoming damage direction ring -->
+  <div id="hit-dir-ring"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hp-row">
+      <span class="label">HP</span>
+      <div id="hp-track">
+        <div id="hp-fill"></div>
+      </div>
+      <span id="hp-text">30 / 30</span>
+    </div>
+    <div id="xp-row">
+      <span class="label">XP</span>
+      <div id="xp-track">
+        <div id="xp-fill"></div>
+      </div>
+      <span id="level-label">LVL 1</span>
+    </div>
+    <div id="hud-bottom">
+      <div id="floor-label">FLOOR 1</div>
+      <div id="kill-label">0 kills</div>
+    </div>
+  </div>
+
+  <!-- Minimap -->
+  <canvas id="minimap" width="150" height="108"></canvas>
+
+  <!-- Boss health bar (appears when boss is nearby) -->
+  <div id="boss-bar">
+    <div id="boss-name">⚔ THE WARDEN ⚔</div>
+    <div id="boss-track"><div id="boss-fill"></div></div>
+    <div id="boss-hp-text">100%  200 / 200</div>
+  </div>
+
+  <!-- Poison vignette -->
+  <div id="poison-overlay"></div>
+
+  <!-- Enemy HP bars (positioned in screen space each frame) -->
+  <div id="enemy-bars"></div>
+
+  <!-- Floating damage numbers -->
+  <div id="dmg-nums"></div>
+
+  <!-- Red flash when player takes damage -->
+  <div id="hurt-overlay"></div>
+
+  <!-- Low HP heartbeat vignette -->
+  <div id="low-hp-overlay"></div>
+
+  <!-- Ground-item pickup prompt -->
+  <div id="pickup-prompt"></div>
+
+  <!-- Death screen -->
+  <div id="death-overlay">
+    <h1>YOU DIED</h1>
+    <div id="death-stats"></div>
+    <button id="death-restart">Click to restart</button>
+  </div>
+
+  <!-- Floor transition fade -->
+  <div id="transition-overlay"></div>
+
+  <!-- Combat damage log -->
+  <div id="damage-log"></div>
+
+  <!-- Full floor map (M key) -->
+  <div id="fullmap-overlay">
+    <canvas id="fullmap-canvas" width="600" height="432"></canvas>
+    <div id="fullmap-label">M  ─  CLOSE MAP</div>
+  </div>
+
+  <!-- Active status effects strip -->
+  <div id="status-effects"></div>
+
+  <!-- Meta-progression upgrade screen (between runs) -->
+  <div id="meta-overlay">
+    <h2>BETWEEN THE DEPTHS</h2>
+    <div id="meta-souls">0 souls</div>
+    <div id="upgrades-list"></div>
+    <button id="meta-continue">DESCEND AGAIN</button>
+  </div>
+
+  <!-- Critical hit flash -->
+  <div id="crit-flash"></div>
+
+  <!-- Dodge cooldown arc (bottom-right) -->
+  <div id="dodge-cd">
+    <div id="dodge-cd-arc"></div>
+    <span id="dodge-label">ROLL</span>
+  </div>
+
+  <!-- Combat hotbar — weapon slot and spell slot -->
+  <div id="hotbar">
+    <div class="hb-slot" id="hb-weapon-slot">
+      <div class="hb-slot-key">F</div>
+      <div class="hb-slot-label">WEAPON</div>
+      <div class="hb-slot-name" id="hb-weapon-name">FISTS</div>
+    </div>
+    <div class="hb-slot hb-spell" id="hb-spell-slot">
+      <div class="hb-slot-key">Q</div>
+      <div class="hb-slot-label">SPELL</div>
+      <div class="hb-slot-name" id="hb-spell-name">— empty —</div>
+    </div>
+  </div>
+
+  <!-- Combo counter -->
+  <div id="combo-counter"></div>
+
+  <!-- Merchant shop overlay -->
+  <div id="merchant-overlay">
+    <div id="merchant-panel">
+      <div id="merchant-header">⚙ MERCHANT ⚙</div>
+      <div id="merchant-souls-row">Souls: <span id="merchant-souls">0</span></div>
+      <div id="merchant-items"></div>
+      <div id="merchant-close-hint">[ESC] or walk away to close</div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dungeon Crawler — Preview Index</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#04050c;font-family:'Courier New',monospace;color:#ccc;
+       display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:60px 20px;}
+  h1{font-size:2rem;letter-spacing:10px;color:#ffd060;text-shadow:0 0 30px rgba(255,200,60,0.5);margin-bottom:8px;}
+  .sub{font-size:10px;letter-spacing:4px;color:#333;margin-bottom:56px;text-transform:uppercase;}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;width:100%;max-width:780px;}
+  a.card{display:flex;flex-direction:column;gap:10px;padding:28px 32px;
+         background:#080a14;border:1px solid #1e2030;text-decoration:none;
+         transition:border-color .14s,box-shadow .14s;}
+  a.card:hover{border-color:#ffd060;box-shadow:0 0 20px rgba(255,200,60,0.12);}
+  .card-icon{font-size:2rem;line-height:1;}
+  .card-title{font-size:1rem;letter-spacing:6px;color:#ffd060;}
+  .card-desc{font-size:10px;letter-spacing:1px;color:#444;line-height:1.8;}
+  .card-tag{display:inline-block;font-size:9px;letter-spacing:2px;padding:2px 8px;
+            border:1px solid #2a2a44;color:#556;margin-top:6px;}
+  .divider{width:100%;max-width:780px;height:1px;
+           background:linear-gradient(90deg,transparent,#2a2a44,transparent);margin:8px 0 40px;}
+  footer{margin-top:60px;font-size:9px;letter-spacing:3px;color:#222;}
+</style>
+</head>
+<body>
+<h1>DUNGEON CRAWLER</h1>
+<div class="sub">Visual Documentation · Preview Index</div>
+
+<div class="grid">
+  <a class="card" href="themes.html">
+    <div class="card-icon">🏰</div>
+    <div class="card-title">THEMES</div>
+    <div class="card-desc">Three dungeon tiers rendered in full 3D.<br>Architecture · Lighting · Props · Materials.</div>
+    <span class="card-tag">DUNGEON · CATACOMBS · ABYSS</span>
+  </a>
+  <a class="card" href="enemies.html">
+    <div class="card-icon">💀</div>
+    <div class="card-title">BESTIARY</div>
+    <div class="card-desc">All 9 enemy types with stats and abilities.<br>Elite and Champion variants included.</div>
+    <span class="card-tag">9 TYPES · ELITE · CHAMPION · BOSS</span>
+  </a>
+  <a class="card" href="items.html">
+    <div class="card-icon">⚔</div>
+    <div class="card-title">ARMOURY</div>
+    <div class="card-desc">Every weapon, armour, potion and scroll.<br>3D meshes · Rarity colours · Descriptions.</div>
+    <span class="card-tag">17 ITEMS · WEAPONS · SCROLLS · ARMOUR</span>
+  </a>
+  <a class="card" href="ui.html">
+    <div class="card-icon">🖥</div>
+    <div class="card-title">INTERFACE</div>
+    <div class="card-desc">HUD, menus, inventory and all overlays.<br>Every screen state documented.</div>
+    <span class="card-tag">HUD · MENUS · INVENTORY · OVERLAYS</span>
+  </a>
+</div>
+
+<div class="divider"></div>
+<footer>DUNGEON CRAWLER · PREVIEW SUITE · SERVE VIA serve.ps1</footer>
+</body>
+</html>

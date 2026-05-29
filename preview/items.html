@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dungeon Crawler — Armoury</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#04050c;font-family:'Courier New',monospace;color:#ccc;padding:0 0 60px;}
+  #page-header{text-align:center;padding:36px 0 10px;}
+  #page-header h1{font-size:1.6rem;letter-spacing:10px;color:#ffd060;
+                  text-shadow:0 0 24px rgba(255,200,60,0.5);}
+  #page-header p{font-size:9px;letter-spacing:4px;color:#555;margin-top:6px;}
+  .back{display:inline-block;margin:16px 0 0 32px;font-size:9px;
+        letter-spacing:3px;color:#333;text-decoration:none;}
+  .back:hover{color:#888;}
+
+  .section{max-width:1180px;margin:36px auto 0;padding:0 24px;}
+  .section-title{font-size:10px;letter-spacing:7px;color:#555;text-transform:uppercase;
+                 margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #0e1020;}
+  .item-grid{display:flex;flex-wrap:wrap;gap:14px;}
+
+  .item-card{width:180px;background:#0c0e1a;border:1px solid #181a28;
+             display:flex;flex-direction:column;transition:border-color .14s;}
+  .item-card:hover{border-color:#ffd060;}
+  .item-canvas{display:block;width:180px;height:170px;}
+  .item-info{padding:10px 12px 14px;}
+  .item-name{font-size:11px;letter-spacing:2px;color:#ffd060;margin-bottom:5px;line-height:1.3;}
+  .item-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px;}
+  .itag{font-size:8px;letter-spacing:1px;padding:1px 6px;border:1px solid;text-transform:uppercase;}
+  .itag.common {color:#667;border-color:#1e2030;}
+  .itag.rare   {color:#9966cc;border-color:#330066;}
+  .itag.cursed {color:#cc2244;border-color:#440011;}
+  .itag.weapon {color:#cc8844;border-color:#442200;}
+  .itag.armor  {color:#448899;border-color:#114455;}
+  .itag.potion {color:#cc3355;border-color:#440011;}
+  .itag.scroll {color:#ff8844;border-color:#441100;}
+  .itag.ranged {color:#4488cc;border-color:#112244;}
+  .item-stat{font-size:10px;color:#999;letter-spacing:1px;margin-bottom:5px;}
+  .item-desc{font-size:9px;letter-spacing:0.5px;line-height:1.8;color:#556;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← INDEX</a>
+<div id="page-header">
+  <h1>ARMOURY</h1>
+  <p>ALL ITEMS · WEAPONS · ARMOUR · CONSUMABLES · SCROLLS</p>
+</div>
+
+<div class="section"><div class="section-title">WEAPONS</div><div class="item-grid" id="weapons-grid"></div></div>
+<div class="section"><div class="section-title">ARMOUR</div><div class="item-grid" id="armor-grid"></div></div>
+<div class="section"><div class="section-title">CONSUMABLES</div><div class="item-grid" id="potion-grid"></div></div>
+<div class="section"><div class="section-title">SCROLLS</div><div class="item-grid" id="scroll-grid"></div></div>
+
+<script type="module">
+import * as THREE        from 'https://unpkg.com/three@0.164.1/build/three.module.js';
+import { buildGroundMesh } from '../src/weapons.js';
+import { ITEMS }           from '../src/items.js';
+
+// ── Canvas dimensions ─────────────────────────────────────────────────────────
+const CW = 180, CH = 170;         // CSS display size
+const RW = CW * 2, RH = CH * 2;   // render resolution (2× = crisp)
+
+const SECTION_MAP = { weapon:'weapons-grid', armor:'armor-grid', potion:'potion-grid', scroll:'scroll-grid' };
+
+const EXTRA = {
+  rusty_dagger:    { tags:['weapon','common'],         stat:'+2 ATK' },
+  iron_sword:      { tags:['weapon','common'],         stat:'+4 ATK' },
+  bone_club:       { tags:['weapon','common','cursed'],stat:'+3 ATK · drains 1 HP/hit' },
+  dread_blade:     { tags:['weapon','rare'],           stat:'+6 ATK · Bleed (35%)' },
+  magic_staff:     { tags:['weapon','rare'],           stat:'+7 ATK · Fires magic bolt' },
+  bow:             { tags:['weapon','ranged','common'],stat:'+3 ATK · 8 arrows on pickup' },
+  leather_vest:    { tags:['armor','common'],          stat:'+2 DEF' },
+  bone_shield:     { tags:['armor','common'],          stat:'+3 DEF' },
+  chainmail:       { tags:['armor','common'],          stat:'+4 DEF' },
+  shadow_robe:     { tags:['armor','rare','cursed'],   stat:'+5 DEF · drains 1 HP/4s' },
+  health_potion:   { tags:['potion','common'],         stat:'Restores 20 HP instantly' },
+  greater_potion:  { tags:['potion','rare'],           stat:'Restores 40 HP instantly' },
+  scroll_fireball: { tags:['scroll','rare'],           stat:'Fire damage · 15 dmg · 3.5 tile AoE' },
+  scroll_teleport: { tags:['scroll','rare'],           stat:'Teleport to random visited tile' },
+  scroll_identify: { tags:['scroll','rare'],           stat:'Reveal all cursed items in bag' },
+  scroll_haste:    { tags:['scroll','rare'],           stat:'Speed ×1.5 for 8 seconds' },
+  scroll_freeze:   { tags:['scroll','rare'],           stat:'Freeze all enemies for 3s · 4 tile AoE' },
+};
+
+const ORDER = [
+  'rusty_dagger','iron_sword','bone_club','dread_blade','magic_staff','bow',
+  'leather_vest','bone_shield','chainmail','shadow_robe',
+  'health_potion','greater_potion',
+  'scroll_fireball','scroll_teleport','scroll_identify','scroll_haste','scroll_freeze',
+];
+
+// ── Single shared WebGL renderer — avoids browser GL context limit (~8–16) ────
+const masterGL = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+masterGL.setSize(RW, RH);
+masterGL.toneMapping = THREE.ACESFilmicToneMapping;
+masterGL.toneMappingExposure = 1.15;
+masterGL.domElement.style.display = 'none';
+document.body.appendChild(masterGL.domElement);
+
+// Tight orthographic camera — items fill ~85% of frame
+const cam = new THREE.OrthographicCamera(-0.40, 0.40, 0.40, -0.40, 0.1, 12);
+cam.position.set(1.1, 1.0, 1.1);
+cam.lookAt(0, 0.04, 0);
+
+// ── Build items ────────────────────────────────────────────────────────────────
+const allItems = ORDER.map(id => {
+  const def   = ITEMS[id];
+  const extra = EXTRA[id] ?? {};
+
+  // Scene (one per item — only one is rendered at a time)
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x08091a);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+
+  const key = new THREE.DirectionalLight(0xffe8cc, 1.5);
+  key.position.set(2, 3, 2); scene.add(key);
+
+  const fill = new THREE.DirectionalLight(0x9999dd, 0.65);
+  fill.position.set(-1.5, 1, -1); scene.add(fill);
+
+  const top = new THREE.DirectionalLight(0xffffff, 0.35);
+  top.position.set(0, 5, 0); scene.add(top);
+
+  const mesh = buildGroundMesh(id, def.color);
+  mesh.rotation.y = 0.45;
+  scene.add(mesh);
+
+  // 2D display canvas — receives blit from master renderer each frame
+  const canvas2d = document.createElement('canvas');
+  canvas2d.width  = RW;
+  canvas2d.height = RH;
+  canvas2d.className = 'item-canvas';
+  canvas2d.style.width  = CW + 'px';
+  canvas2d.style.height = CH + 'px';
+
+  // Card DOM
+  const card = document.createElement('div');
+  card.className = 'item-card';
+  card.appendChild(canvas2d);
+
+  const info = document.createElement('div');
+  info.className = 'item-info';
+
+  const name = document.createElement('div');
+  name.className = 'item-name';
+  name.textContent = def.name.toUpperCase();
+  info.appendChild(name);
+
+  const tags = document.createElement('div');
+  tags.className = 'item-tags';
+  (extra.tags ?? []).forEach(t => {
+    const span = document.createElement('span');
+    span.className = `itag ${t}`;
+    span.textContent = t;
+    tags.appendChild(span);
+  });
+  info.appendChild(tags);
+
+  if (extra.stat) {
+    const st = document.createElement('div');
+    st.className = 'item-stat';
+    st.textContent = extra.stat;
+    info.appendChild(st);
+  }
+
+  const desc = document.createElement('div');
+  desc.className = 'item-desc';
+  desc.textContent = (def.desc ?? '').replace(/ Equip → Q\.$/, '');
+  info.appendChild(desc);
+
+  card.appendChild(info);
+  document.getElementById(SECTION_MAP[def.type])?.appendChild(card);
+
+  return { scene, mesh, canvas2d };
+});
+
+// ── Animation loop — ONE renderer, render each scene in sequence ───────────────
+function animate(now) {
+  requestAnimationFrame(animate);
+  const t = now * 0.001;
+
+  allItems.forEach(({ scene, mesh, canvas2d }, i) => {
+    mesh.rotation.y = 0.45 + Math.sin(t * 0.40 + i * 0.65) * 0.38;
+
+    masterGL.render(scene, cam);
+    canvas2d.getContext('2d').drawImage(masterGL.domElement, 0, 0, RW, RH);
+  });
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dungeon Crawler — Interface</title>
+<style>
+/* ── Reset & base ──────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#04050c;font-family:'Courier New',monospace;color:#ccc;padding:0 0 80px;}
+
+/* ── Page chrome ───────────────────────────────────────────────────────────── */
+#page-header{text-align:center;padding:36px 0 10px;}
+#page-header h1{font-size:1.6rem;letter-spacing:10px;color:#ffd060;text-shadow:0 0 24px rgba(255,200,60,0.5);}
+#page-header p{font-size:9px;letter-spacing:4px;color:#333;margin-top:6px;}
+.back{display:inline-block;margin:16px 0 0 32px;font-size:9px;letter-spacing:3px;color:#333;text-decoration:none;}
+.back:hover{color:#888;}
+
+.page{max-width:1200px;margin:0 auto;padding:0 28px;}
+
+/* ── Section headers ───────────────────────────────────────────────────────── */
+.sec{margin-top:48px;}
+.sec-title{font-size:10px;letter-spacing:7px;color:#444;text-transform:uppercase;
+           padding-bottom:8px;border-bottom:1px solid #0e1020;margin-bottom:24px;}
+.sec-row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;}
+
+/* ── Preview box ───────────────────────────────────────────────────────────── */
+.preview-box{background:#060810;border:1px solid #12141e;padding:20px;
+             display:inline-flex;flex-direction:column;gap:8px;}
+.preview-label{font-size:9px;letter-spacing:3px;color:#333;text-transform:uppercase;margin-top:4px;}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Game UI components (scoped — not fixed positioned)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── HUD bars ──────────────────────────────────────────────────────────────── */
+.hud-panel{display:flex;flex-direction:column;gap:6px;width:250px;}
+.bar-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.5);padding:6px 10px;border:1px solid #222;}
+.bar-label{font-size:11px;color:#888;width:18px;}
+.bar-track{height:10px;background:#1a1a1a;border:1px solid #333;flex:1;}
+.bar-fill{height:100%;}
+.bar-text{font-size:10px;color:#aaa;width:52px;text-align:right;}
+.bar-row.xp  .bar-track{height:6px;}
+.bar-row.sp  .bar-track{height:6px;}
+.hud-bottom{display:flex;justify-content:space-between;padding:0 2px;}
+.hud-stat{font-size:10px;color:#555;letter-spacing:2px;}
+
+/* ── Hotbar ────────────────────────────────────────────────────────────────── */
+.hotbar{display:flex;gap:6px;}
+.hb-slot{width:108px;padding:7px 10px 8px;background:rgba(0,0,0,0.75);
+          border:1px solid #222;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
+.hb-slot.spell-active{border-color:#ff8844;box-shadow:0 0 12px #ff8844;}
+.hb-slot.spell-active-blue{border-color:#4488ff;box-shadow:0 0 12px #4488ff;}
+.hb-key{font-size:9px;letter-spacing:2px;color:#444;background:rgba(255,255,255,0.04);
+        padding:1px 7px;border:1px solid #2a2a2a;margin-bottom:1px;}
+.hb-type{font-size:9px;letter-spacing:3px;color:#3a3a4a;text-transform:uppercase;}
+.hb-name{font-size:10px;color:#ffd060;letter-spacing:1px;}
+.hb-name.spell{color:#4488ff;}
+.hb-name.empty{color:#333;}
+
+/* ── Status effects ────────────────────────────────────────────────────────── */
+.status-strip{display:flex;gap:5px;}
+.s-icon{font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:3px 9px;
+        border:1px solid #333;background:rgba(0,0,0,0.65);}
+.s-icon.burn  {color:#ff6622;border-color:#aa3300;}
+.s-icon.bleed {color:#cc2244;border-color:#881122;}
+.s-icon.haste {color:#ffff44;border-color:#aaaa00;}
+
+/* ── Boss bar ──────────────────────────────────────────────────────────────── */
+.boss-bar-wrap{width:340px;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.boss-name-el{font-size:13px;letter-spacing:6px;color:#cc2200;text-shadow:0 0 18px rgba(200,30,0,0.7);}
+.boss-track-el{width:100%;height:14px;background:#1a0505;border:1px solid #551111;box-shadow:0 0 14px rgba(200,30,0,0.4);}
+.boss-fill-el{height:100%;background:linear-gradient(90deg,#880000,#dd2200);transition:width .2s;}
+.boss-fill-el.enraged{background:linear-gradient(90deg,#cc0000,#ff4400);}
+.boss-hp-el{font-size:10px;color:#cc5544;letter-spacing:2px;}
+
+/* ── Damage log ────────────────────────────────────────────────────────────── */
+.dmg-log{display:flex;flex-direction:column-reverse;gap:3px;width:280px;}
+.dmg-entry{font-size:11px;letter-spacing:1px;padding:2px 10px;
+           background:rgba(0,0,0,0.55);border-left:2px solid #333;white-space:nowrap;}
+.dmg-entry.player-hit{color:#ff5555;border-color:#cc2222;}
+.dmg-entry.enemy-hit {color:#ffcc44;border-color:#aa8800;}
+.dmg-entry.critical  {color:#ffffff;border-color:#ffdd00;}
+.dmg-entry.status-msg{color:#88ff99;border-color:#336633;}
+
+/* ── Combo counter ─────────────────────────────────────────────────────────── */
+.combo-demo{font-size:2.2rem;font-weight:bold;letter-spacing:4px;color:#ff8800;
+            text-shadow:0 0 18px rgba(255,140,0,0.7);}
+
+/* ── Dodge CD ──────────────────────────────────────────────────────────────── */
+.dodge-demo{display:flex;align-items:center;gap:6px;}
+.dodge-arc{width:40px;height:40px;border:2px solid #334;border-radius:50%;
+           background:conic-gradient(#44aaff 70%,#111 0%);}
+.dodge-lab{font-size:9px;letter-spacing:2px;color:#336688;}
+
+/* ── Pickup prompt ─────────────────────────────────────────────────────────── */
+.pickup-demo{padding:5px 16px;background:rgba(0,0,0,0.65);border:1px solid #2a2a2a;
+             font-size:11px;letter-spacing:2px;color:#ffd060;}
+.pickup-demo.warn{color:#ff8866;border-color:#663322;}
+.pickup-demo.ok  {color:#88ff99;border-color:#336633;}
+
+/* ── Hit direction ring ────────────────────────────────────────────────────── */
+.hitdir-demo{width:80px;height:80px;border-radius:50%;border:1px solid #1a1a2a;
+             position:relative;display:flex;align-items:center;justify-content:center;}
+.hitdir-arr{position:absolute;width:8px;height:28px;border-radius:4px 4px 2px 2px;
+            background:linear-gradient(to top,transparent,rgba(220,40,40,0.85),rgba(255,110,80,0.75));
+            top:6px;left:calc(50% - 4px);}
+
+/* ── Crit flash ────────────────────────────────────────────────────────────── */
+.crit-demo{width:100px;height:60px;background:rgba(255,220,60,0.22);
+           border:1px solid rgba(255,220,60,0.4);
+           display:flex;align-items:center;justify-content:center;
+           font-size:9px;letter-spacing:2px;color:#ffd060;}
+
+/* ── Vignettes ─────────────────────────────────────────────────────────────── */
+.vignette-demo{width:160px;height:100px;position:relative;
+               border:1px solid #1a1a2a;overflow:hidden;
+               display:flex;align-items:center;justify-content:center;}
+.vignette-demo .label-in{font-size:9px;letter-spacing:2px;color:#888;z-index:1;position:relative;}
+.vig-layer{position:absolute;inset:0;pointer-events:none;}
+.vig-hurt {background:radial-gradient(ellipse at center,transparent 45%,rgba(200,0,0,0.65) 100%);}
+.vig-low  {background:radial-gradient(ellipse at center,transparent 38%,rgba(160,0,0,0.72) 100%);}
+.vig-poison{background:radial-gradient(ellipse at center,transparent 40%,rgba(30,120,10,0.60) 100%);}
+
+/* ── Minimap ───────────────────────────────────────────────────────────────── */
+.minimap-demo{position:relative;}
+.minimap-demo canvas{border:1px solid #222;background:#06080f;display:block;}
+
+/* ── Menus ─────────────────────────────────────────────────────────────────── */
+.menu-card-demo{display:flex;flex-direction:column;align-items:center;gap:14px;
+                background:rgba(8,10,20,0.96);border:1px solid #2a2a44;
+                padding:32px 40px;min-width:280px;
+                box-shadow:0 0 40px rgba(0,0,0,0.7);}
+.mc-title{font-size:1.6rem;letter-spacing:8px;color:#ffd060;text-shadow:0 0 20px rgba(255,200,60,0.5);}
+.mc-tag  {font-size:9px;letter-spacing:3px;color:#333;}
+.mc-btn  {padding:10px 32px;background:none;border:1px solid #ffd060;color:#ffd060;
+          font-family:'Courier New',monospace;font-size:10px;letter-spacing:5px;width:100%;}
+.mc-btn.secondary{border-color:#444;color:#666;margin-top:0;}
+.mc-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,#2a2a44,transparent);}
+.ctrl-r{display:flex;justify-content:space-between;gap:24px;width:100%;}
+.ctrl-k{font-size:8px;letter-spacing:2px;color:#556;background:rgba(255,255,255,0.04);
+        padding:2px 6px;border:1px solid #2a2a44;}
+.ctrl-d{font-size:8px;letter-spacing:1px;color:#444;}
+.pause-title-el{font-size:1rem;letter-spacing:8px;color:#cc8833;}
+
+/* ── Inventory ─────────────────────────────────────────────────────────────── */
+.inv-preview{background:#0c0e18;border:1px solid #1e2030;padding:18px 22px;width:540px;}
+.inv-hdr{display:flex;justify-content:space-between;font-size:13px;letter-spacing:5px;color:#ffd060;
+         margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #1e2030;}
+.inv-close-btn{font-size:10px;color:#444;letter-spacing:2px;}
+.inv-body{display:flex;gap:20px;}
+.inv-lbl{font-size:9px;letter-spacing:4px;color:#444;margin-bottom:8px;text-transform:uppercase;}
+.inv-cells{display:grid;grid-template-columns:repeat(4,70px);gap:5px;}
+.inv-cell{width:70px;height:78px;border:1px solid #1e2030;background:#080a12;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
+.inv-cell.occupied{border-color:#3a3a4a;}
+.inv-cell.scroll-cell{border-color:#ff8844;background:rgba(24,8,40,0.9);}
+.inv-cell.equipped{background:rgba(255,208,96,0.06);border-color:#ffd06088;}
+.inv-cell-dot{width:28px;height:28px;border-radius:2px;}
+.inv-cell-name{font-size:7px;color:#555;letter-spacing:0.5px;text-align:center;max-width:62px;}
+.inv-eq-badge{position:absolute;top:2px;left:4px;font-size:8px;color:#ffd060;opacity:0.75;}
+.inv-sidebar{width:160px;display:flex;flex-direction:column;gap:6px;}
+.equip-slot-demo{border:1px solid #1a1a28;background:#080a12;padding:10px 12px;}
+.equip-slot-demo.spell-active{border-color:#4488ff;box-shadow:0 0 10px #4488ff44;}
+.es-lbl{font-size:8px;letter-spacing:4px;color:#444;margin-bottom:6px;text-transform:uppercase;}
+.es-item{font-size:11px;min-height:20px;padding:2px 5px;text-align:center;}
+.inv-stat-line{font-size:12px;color:#666;letter-spacing:1px;line-height:2.0;}
+
+/* ── Death / Meta screens ──────────────────────────────────────────────────── */
+.death-demo{background:rgba(6,0,0,0.96);border:1px solid #330000;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:12px;padding:32px 48px;width:360px;}
+.death-title{font-size:2rem;letter-spacing:8px;color:#cc0000;text-shadow:0 0 40px rgba(200,0,0,0.7);}
+.death-st{font-size:9px;color:#555;letter-spacing:3px;}
+.death-btn{padding:8px 24px;background:none;border:1px solid #2a2a2a;color:#555;
+           font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;}
+
+.meta-demo{background:rgba(4,5,12,0.97);border:1px solid #2a2a44;
+           display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 40px;width:360px;}
+.meta-h2{font-size:1rem;letter-spacing:6px;color:#ffd060;text-shadow:0 0 16px rgba(255,200,60,0.4);}
+.meta-souls{font-size:10px;letter-spacing:4px;color:#888;}
+.upgrade-btn-demo{padding:8px 24px;background:none;border:1px solid #2a2a44;color:#aaa;
+                  font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;width:250px;text-align:left;}
+.upgrade-btn-demo.maxed{border-color:#1a1a1a;color:#333;}
+.meta-continue-btn{padding:8px 28px;background:none;border:1px solid #ffd060;color:#ffd060;
+                   font-family:'Courier New',monospace;font-size:8px;letter-spacing:4px;}
+
+/* ── Merchant ──────────────────────────────────────────────────────────────── */
+.merchant-demo{background:#0c0e18;border:1px solid #554400;padding:20px 28px;
+               width:360px;box-shadow:0 0 30px rgba(255,170,0,0.1);}
+.merch-hdr{font-size:13px;letter-spacing:6px;color:#ffd060;text-align:center;
+           margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #332200;
+           text-shadow:0 0 16px rgba(255,200,60,0.4);}
+.merch-souls{font-size:10px;letter-spacing:2px;color:#888;text-align:right;margin-bottom:12px;}
+.merch-btn{width:100%;padding:8px 12px;margin-bottom:7px;background:#080a12;
+           border:1px solid #2a2010;display:flex;flex-direction:column;gap:3px;}
+.merch-name{font-size:11px;color:#ffd060;letter-spacing:2px;}
+.merch-desc{font-size:9px;color:#445;letter-spacing:1px;}
+.merch-cost{font-size:10px;color:#aa8800;letter-spacing:2px;align-self:flex-end;}
+.merch-hint{font-size:8px;color:#1a1a2a;letter-spacing:2px;text-align:center;margin-top:10px;}
+
+/* ── Floor transition ──────────────────────────────────────────────────────── */
+.transition-demo{width:200px;height:100px;background:#000;border:1px solid #111;
+                 display:flex;align-items:center;justify-content:center;}
+.transition-demo span{font-size:9px;letter-spacing:4px;color:#1a1a2a;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← INDEX</a>
+<div id="page-header">
+  <h1>INTERFACE</h1>
+  <p>ALL HUD · MENUS · OVERLAYS · FEEDBACK ELEMENTS</p>
+</div>
+
+<div class="page">
+
+<!-- ── 1. HUD ─────────────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">IN-GAME HUD</div>
+  <div class="sec-row">
+
+    <div class="preview-box">
+      <div class="hud-panel">
+        <div class="bar-row">
+          <span class="bar-label">HP</span>
+          <div class="bar-track"><div class="bar-fill" style="width:72%;background:#2ec86e;"></div></div>
+          <span class="bar-text">22 / 30</span>
+        </div>
+        <div class="bar-row xp">
+          <span class="bar-label">XP</span>
+          <div class="bar-track"><div class="bar-fill" style="width:45%;background:#6644cc;"></div></div>
+          <span class="bar-text" style="font-size:9px;color:#9977ee;">LVL 3</span>
+        </div>
+        <div class="bar-row sp">
+          <span class="bar-label" style="color:#336688;">SP</span>
+          <div class="bar-track"><div class="bar-fill" style="width:60%;background:#44aaff;"></div></div>
+          <span class="bar-text" style="font-size:9px;color:#336688;">SPRINT</span>
+        </div>
+        <div class="hud-bottom">
+          <span class="hud-stat">FLOOR 4 · CATACOMBS</span>
+          <span class="hud-stat">17 kills</span>
+        </div>
+      </div>
+      <div class="preview-label">HP · XP · STAMINA BARS</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="hud-panel">
+        <div class="bar-row">
+          <span class="bar-label">HP</span>
+          <div class="bar-track"><div class="bar-fill" style="width:22%;background:#d03030;animation:none;"></div></div>
+          <span class="bar-text">6 / 30</span>
+        </div>
+      </div>
+      <div style="height:6px;"></div>
+      <div style="width:240px;height:50px;background:radial-gradient(ellipse at center,transparent 38%,rgba(160,0,0,0.72) 100%);border:1px solid #330000;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:9px;letter-spacing:2px;color:#444;">LOW HP VIGNETTE</span>
+      </div>
+      <div class="preview-label">CRITICAL HP STATE</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="hotbar">
+        <div class="hb-slot">
+          <div class="hb-key">F</div>
+          <div class="hb-type">WEAPON</div>
+          <div class="hb-name">DREAD BLADE</div>
+        </div>
+        <div class="hb-slot spell-active-blue">
+          <div class="hb-key">Q</div>
+          <div class="hb-type">SPELL</div>
+          <div class="hb-name spell">SCROLL OF FIRE</div>
+        </div>
+      </div>
+      <div class="preview-label">HOTBAR · WEAPON + SPELL</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="hotbar">
+        <div class="hb-slot">
+          <div class="hb-key">F</div>
+          <div class="hb-type">WEAPON</div>
+          <div class="hb-name">SHORT Bow  ×5</div>
+        </div>
+        <div class="hb-slot">
+          <div class="hb-key">Q</div>
+          <div class="hb-type">SPELL</div>
+          <div class="hb-name empty">— empty —</div>
+        </div>
+      </div>
+      <div class="preview-label">HOTBAR · BOW AMMO COUNT</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 2. Combat Feedback ─────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">COMBAT FEEDBACK</div>
+  <div class="sec-row">
+
+    <div class="preview-box">
+      <div class="dmg-log">
+        <div class="dmg-entry critical">Critical! −24</div>
+        <div class="dmg-entry enemy-hit">Goblin hit −8</div>
+        <div class="dmg-entry player-hit">Hit for 5 dmg</div>
+        <div class="dmg-entry status-msg">Bleed applied!</div>
+        <div class="dmg-entry status-msg">Floor cleared — bonus chest!</div>
+      </div>
+      <div class="preview-label">DAMAGE LOG · LAST 5 EVENTS</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="status-strip">
+        <div class="s-icon burn">🔥 BURN</div>
+        <div class="s-icon bleed">🩸 BLEED</div>
+        <div class="s-icon haste">⚡ HASTE</div>
+      </div>
+      <div class="preview-label">STATUS EFFECTS STRIP</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="combo-demo">×9</div>
+      <div class="preview-label">COMBO COUNTER</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="dodge-demo">
+        <div class="dodge-arc"></div>
+        <div class="dodge-lab">ROLL</div>
+      </div>
+      <div class="preview-label">DODGE COOLDOWN ARC</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="crit-demo">CRIT FLASH</div>
+      <div class="preview-label">CRITICAL HIT FLASH</div>
+    </div>
+
+    <div class="preview-box">
+      <div style="position:relative;width:180px;height:40px;display:flex;align-items:center;">
+        <div style="position:absolute;left:30%;color:#ffcc00;font-size:17px;font-weight:bold;font-family:'Courier New',monospace;text-shadow:1px 1px 3px rgba(0,0,0,0.9);">−12</div>
+        <div style="position:absolute;left:55%;color:#ff4444;font-size:21px;font-weight:bold;font-family:'Courier New',monospace;">−5</div>
+        <div style="position:absolute;left:10%;color:#ffffff;font-size:22px;font-weight:bold;font-family:'Courier New',monospace;text-shadow:0 0 8px rgba(255,220,60,0.9);">★ −24</div>
+      </div>
+      <div class="preview-label">DAMAGE NUMBERS · NORMAL · PLAYER · CRIT</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="hitdir-demo">
+        <div class="hitdir-arr" style="transform-origin:50% 100%;transform:rotate(45deg) translateY(-20px);"></div>
+        <span style="font-size:8px;color:#333;letter-spacing:1px;">HIT DIR</span>
+      </div>
+      <div class="preview-label">HIT DIRECTION RING</div>
+    </div>
+
+    <div class="preview-box">
+      <div style="display:flex;gap:8px;">
+        <div class="vignette-demo" style="width:130px;height:80px;">
+          <div class="vig-layer vig-hurt"></div>
+          <span class="label-in">HURT</span>
+        </div>
+        <div class="vignette-demo" style="width:130px;height:80px;">
+          <div class="vig-layer vig-poison"></div>
+          <span class="label-in">POISON</span>
+        </div>
+      </div>
+      <div class="preview-label">VIGNETTE OVERLAYS</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 3. Boss Bar ────────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">BOSS HEALTH BAR</div>
+  <div class="sec-row">
+    <div class="preview-box">
+      <div class="boss-bar-wrap">
+        <div class="boss-name-el">⚔ THE WARDEN ⚔</div>
+        <div class="boss-track-el"><div class="boss-fill-el" style="width:72%;"></div></div>
+        <div class="boss-hp-el">72%  144 / 200</div>
+      </div>
+      <div class="preview-label">PHASE 1 — NORMAL</div>
+    </div>
+    <div class="preview-box">
+      <div class="boss-bar-wrap">
+        <div class="boss-name-el">⚔ THE WARDEN ⚔</div>
+        <div class="boss-track-el"><div class="boss-fill-el enraged" style="width:34%;"></div></div>
+        <div class="boss-hp-el" style="color:#ff4400;">34%  68 / 200</div>
+      </div>
+      <div class="preview-label">PHASE 2 — ENRAGED · HP &lt; 40%</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 4. Prompts ─────────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">CONTEXTUAL PROMPTS</div>
+  <div class="sec-row">
+    <div class="preview-box">
+      <div class="pickup-demo">E — pick up  Dread Blade</div>
+      <div class="preview-label">PICKUP PROMPT</div>
+    </div>
+    <div class="preview-box">
+      <div class="pickup-demo ok">Picked up: Iron Sword</div>
+      <div class="preview-label">ITEM ACQUIRED</div>
+    </div>
+    <div class="preview-box">
+      <div class="pickup-demo warn">Inventory full!</div>
+      <div class="preview-label">INVENTORY FULL</div>
+    </div>
+    <div class="preview-box">
+      <div class="pickup-demo warn">⚠  SPIKE TRAP</div>
+      <div class="preview-label">TRAP WARNING</div>
+    </div>
+    <div class="preview-box">
+      <div class="pickup-demo">E — MERCHANT  [shop]</div>
+      <div class="preview-label">MERCHANT NEARBY</div>
+    </div>
+    <div class="preview-box">
+      <div class="pickup-demo">E — hidden passage</div>
+      <div class="preview-label">SECRET WALL HINT</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 5. Inventory ───────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">INVENTORY SCREEN</div>
+  <div class="sec-row">
+    <div class="preview-box">
+      <div class="inv-preview">
+        <div class="inv-hdr">
+          <span>INVENTORY</span>
+          <span class="inv-close-btn">[I / ESC]</span>
+        </div>
+        <div class="inv-body">
+          <div>
+            <div class="inv-lbl">BAG</div>
+            <div class="inv-cells">
+              <div class="inv-cell equipped" style="border-color:#ffd06088;background:rgba(255,208,96,0.06);">
+                <div class="inv-eq-badge">✓</div>
+                <div class="inv-cell-dot" style="background:#dd2211;border-radius:2px;"></div>
+                <div class="inv-cell-name">Dread Blade</div>
+              </div>
+              <div class="inv-cell occupied" style="border-color:#6633bb;">
+                <div class="inv-cell-dot" style="background:#442266;border-radius:2px;"></div>
+                <div class="inv-cell-name">Shadow Robe</div>
+              </div>
+              <div class="inv-cell scroll-cell">
+                <div class="inv-cell-dot" style="background:#ff4400;border-radius:2px;"></div>
+                <div class="inv-cell-name" style="color:#aa88dd;">Scroll of Fire</div>
+              </div>
+              <div class="inv-cell occupied" style="border-color:#3a3a4a;">
+                <div class="inv-cell-dot" style="background:#cc1133;border-radius:50%;"></div>
+                <div class="inv-cell-name">Health Potion</div>
+              </div>
+              <div class="inv-cell scroll-cell" style="border-color:#4488ff;">
+                <div class="inv-cell-dot" style="background:#4488ff;border-radius:2px;"></div>
+                <div class="inv-cell-name" style="color:#aa88dd;">Scroll Shift</div>
+              </div>
+              <div class="inv-cell scroll-cell" style="border-color:#44dd66;">
+                <div class="inv-cell-dot" style="background:#44dd66;border-radius:2px;"></div>
+                <div class="inv-cell-name" style="color:#aa88dd;">Scroll Sight</div>
+              </div>
+              <div class="inv-cell occupied" style="border-color:#3a3a4a;">
+                <div class="inv-cell-dot" style="background:#8B6914;width:14px;height:28px;border-radius:1px;"></div>
+                <div class="inv-cell-name">Short Bow</div>
+              </div>
+              <div class="inv-cell"></div>
+            </div>
+          </div>
+          <div class="inv-sidebar">
+            <div class="inv-lbl">EQUIPPED</div>
+            <div class="equip-slot-demo">
+              <div class="es-lbl">WEAPON [F]</div>
+              <div class="es-item" style="color:#ffd060;background:#dd221111;">Dread Blade</div>
+            </div>
+            <div class="equip-slot-demo">
+              <div class="es-lbl">ARMOR</div>
+              <div class="es-item" style="color:#ffd060;background:#44226611;">Shadow Robe</div>
+            </div>
+            <div class="equip-slot-demo spell-active">
+              <div class="es-lbl">SPELL [Q]</div>
+              <div class="es-item" style="color:#4488ff;background:#4488ff11;">Scroll of Fire</div>
+            </div>
+            <div style="margin-top:10px;">
+              <div class="inv-lbl">STATS</div>
+              <div class="inv-stat-line">ATK  5 + 6</div>
+              <div class="inv-stat-line">DEF  2 + 5</div>
+              <div class="inv-stat-line">HP   22 / 40</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-label">FULL INVENTORY PANEL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 6. Menus ───────────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">MENUS</div>
+  <div class="sec-row">
+
+    <div class="preview-box">
+      <div class="menu-card-demo">
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="color:#554422;">⚔</span>
+          <div class="mc-title">DUNGEON CRAWLER</div>
+          <span style="color:#554422;">⚔</span>
+        </div>
+        <div class="mc-tag">Descend. Survive. Conquer.</div>
+        <div class="mc-btn">BEGIN DESCENT</div>
+        <div class="mc-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;width:100%;">
+          <div class="ctrl-r"><span class="ctrl-k">WASD</span><span class="ctrl-d">Move</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">SPACE</span><span class="ctrl-d">Dodge / Roll</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">F / CLICK</span><span class="ctrl-d">Attack</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">G</span><span class="ctrl-d">Quick-use potion</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">E</span><span class="ctrl-d">Pick up / Shop</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">I</span><span class="ctrl-d">Inventory</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">M</span><span class="ctrl-d">Full map</span></div>
+        </div>
+      </div>
+      <div class="preview-label">MAIN MENU</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="menu-card-demo">
+        <div class="pause-title-el">PAUSED</div>
+        <div class="mc-btn">RESUME</div>
+        <div class="mc-btn secondary">SETTINGS</div>
+        <div class="mc-btn secondary">RESTART</div>
+        <div class="mc-divider"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;width:100%;">
+          <div class="ctrl-r"><span class="ctrl-k">SHIFT</span><span class="ctrl-d">Sprint</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">SPACE</span><span class="ctrl-d">Dodge / Roll</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">Q</span><span class="ctrl-d">Use spell</span></div>
+          <div class="ctrl-r"><span class="ctrl-k">M</span><span class="ctrl-d">Full map</span></div>
+        </div>
+      </div>
+      <div class="preview-label">PAUSE MENU</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="death-demo">
+        <div class="death-title">YOU DIED</div>
+        <div class="death-st">Floor 7 · CATACOMBS · Level 5 · 34 kills</div>
+        <div class="death-btn">Click to restart</div>
+      </div>
+      <div class="preview-label">DEATH SCREEN</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="meta-demo">
+        <div class="meta-h2">BETWEEN THE DEPTHS</div>
+        <div class="meta-souls">42 souls</div>
+        <div class="upgrade-btn-demo">Max HP +10  [8 souls]  (2/5)</div>
+        <div class="upgrade-btn-demo">Attack +1   [10 souls] (1/4)</div>
+        <div class="upgrade-btn-demo">Defense +1  [10 souls] (0/4)</div>
+        <div class="upgrade-btn-demo maxed">Dodge Speed +10%  [MAXED]</div>
+        <div class="meta-continue-btn">DESCEND AGAIN</div>
+      </div>
+      <div class="preview-label">META-PROGRESSION SCREEN</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── 7. Merchant ────────────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">MERCHANT</div>
+  <div class="sec-row">
+    <div class="preview-box">
+      <div class="merchant-demo">
+        <div class="merch-hdr">⚙ MERCHANT ⚙</div>
+        <div class="merch-souls">Souls: <span style="color:#ffd060;">42</span></div>
+        <div class="merch-btn">
+          <span class="merch-name">Health Potion</span>
+          <span class="merch-desc">Restores 20 HP instantly on use.</span>
+          <span class="merch-cost">8 souls</span>
+        </div>
+        <div class="merch-btn">
+          <span class="merch-name">Chainmail</span>
+          <span class="merch-desc">+4 DEF · Sturdy interlocked iron rings.</span>
+          <span class="merch-cost">28 souls</span>
+        </div>
+        <div class="merch-btn">
+          <span class="merch-name">Scroll of Frost</span>
+          <span class="merch-desc">Freezes all nearby enemies for 3s.</span>
+          <span class="merch-cost" style="color:#553322;">22 souls</span>
+        </div>
+        <div class="merch-hint">[ESC] or walk away to close</div>
+      </div>
+      <div class="preview-label">MERCHANT SHOP · SPEND SOULS</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 8. Floor Transition ────────────────────────────────────────────────── -->
+<div class="sec">
+  <div class="sec-title">FLOOR TRANSITION</div>
+  <div class="sec-row">
+    <div class="preview-box">
+      <div class="transition-demo"><span>BLACK FADE · 460ms</span></div>
+      <div class="preview-label">FLOOR DESCENT FADE</div>
+    </div>
+    <div class="preview-box">
+      <div style="background:#04050c;border:1px solid #1a1a2a;padding:14px 28px;
+                  display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="font-size:1.4rem;letter-spacing:8px;color:#ff2200;text-shadow:0 0 30px rgba(200,30,0,0.8);">☠ THE DREAD ☠</div>
+        <div style="font-size:9px;letter-spacing:3px;color:#333;">BOSS ENCOUNTER ANNOUNCE</div>
+      </div>
+      <div class="preview-label">BOSS ANNOUNCE BANNER</div>
+    </div>
+    <div class="preview-box">
+      <div style="background:#04050c;border:1px solid #1a1a2a;padding:14px 28px;
+                  display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="font-size:1.6rem;letter-spacing:8px;color:#00ffaa;text-shadow:0 0 24px rgba(0,255,170,0.6);">✦  FLOOR CLEARED  ✦</div>
+      </div>
+      <div class="preview-label">FLOOR CLEAR BANNER</div>
+    </div>
+    <div class="preview-box">
+      <div style="background:#04050c;border:1px solid #1a1a2a;padding:14px 28px;
+                  display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="font-size:1.4rem;letter-spacing:8px;color:#ff2244;text-shadow:0 0 24px rgba(255,30,60,0.7);">⚔  CHAMPION SLAIN  ⚔</div>
+      </div>
+      <div class="preview-label">CHAMPION KILL BANNER</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+</body>
+</html>

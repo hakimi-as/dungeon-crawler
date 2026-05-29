@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dungeon Crawler — Bestiary</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#04050c;font-family:'Courier New',monospace;color:#ccc;padding:0 0 60px;}
+
+  #page-header{text-align:center;padding:36px 0 10px;}
+  #page-header h1{font-size:1.6rem;letter-spacing:10px;color:#ffd060;
+                  text-shadow:0 0 24px rgba(255,200,60,0.5);}
+  #page-header p{font-size:9px;letter-spacing:4px;color:#555;margin-top:6px;}
+  .back{display:inline-block;margin:16px 0 0 32px;font-size:9px;
+        letter-spacing:3px;color:#333;text-decoration:none;}
+  .back:hover{color:#888;}
+
+  #grid{display:grid;grid-template-columns:repeat(3,1fr);
+        gap:14px;padding:28px;max-width:1100px;margin:0 auto;}
+
+  .card{background:#0c0e1a;border:1px solid #181a28;display:flex;flex-direction:column;}
+  .card canvas{display:block;width:100%;height:auto;}
+  .card-body{padding:14px 16px 18px;}
+  .card-name{font-size:14px;letter-spacing:5px;color:#ffd060;margin-bottom:8px;}
+  .card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .tag{font-size:8px;letter-spacing:2px;padding:2px 7px;border:1px solid;text-transform:uppercase;}
+  .tag.melee   {color:#cc8844;border-color:#442200;}
+  .tag.ranged  {color:#4488cc;border-color:#112244;}
+  .tag.magic   {color:#aa44ff;border-color:#220044;}
+  .tag.poison  {color:#44cc66;border-color:#114422;}
+  .tag.phase   {color:#44ccff;border-color:#114466;}
+  .tag.tank    {color:#999999;border-color:#333333;}
+  .tag.charge  {color:#ff6644;border-color:#441100;}
+  .tag.boss    {color:#ff2244;border-color:#550011;}
+  .tag.elite   {color:#ffaa00;border-color:#553300;}
+  .tag.champion{color:#ff2244;border-color:#550011;}
+  .tag.p2      {color:#ff4400;border-color:#440000;}
+  .stat-row{display:flex;gap:14px;font-size:10px;color:#555;
+            letter-spacing:1px;margin-bottom:7px;}
+  .stat-val{color:#999;}
+  .ability{font-size:10px;letter-spacing:1px;line-height:1.6;
+            border-left:2px solid #1e2030;padding-left:8px;color:#667;}
+
+  #enemy-bars{display:none;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← INDEX</a>
+<div id="page-header">
+  <h1>BESTIARY</h1>
+  <p>ALL ENEMY TYPES · STATS · ABILITIES · VARIANTS</p>
+</div>
+<div id="grid"></div>
+<div id="enemy-bars"></div>
+
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
+import { Enemy }  from '../src/enemies.js';
+
+const CW = 340, CH = 280; // canvas CSS size
+const RW = CW * 2, RH = CH * 2; // render resolution (2× for crispness)
+
+const CATALOG = [
+  { type:'goblin',   name:'GOBLIN',   tags:['melee'],           hp:10,  atk:3,  spd:'FAST',   def:0, ability:'Patrols randomly when idle. Flees when near death.' },
+  { type:'skeleton', name:'SKELETON', tags:['melee'],           hp:18,  atk:5,  spd:'NORMAL', def:1, ability:'Tough for its tier. Armed with a rusted sword.' },
+  { type:'archer',   name:'ARCHER',   tags:['ranged'],          hp:12,  atk:6,  spd:'FAST',   def:0, ability:'Fires arrows at range. Retreats when player closes in.' },
+  { type:'spider',   name:'SPIDER',   tags:['melee','poison'],  hp:8,   atk:4,  spd:'FAST',   def:0, ability:'40% chance to inflict poison on each hit (6 seconds).' },
+  { type:'wraith',   name:'WRAITH',   tags:['melee','phase'],   hp:14,  atk:5,  spd:'FAST',   def:0, ability:'Phases through walls. Transparent and elusive.' },
+  { type:'troll',    name:'TROLL',    tags:['melee','tank'],    hp:35,  atk:8,  spd:'SLOW',   def:2, ability:'Heavy melee tank. High HP and wide attack radius.' },
+  { type:'brute',    name:'BRUTE',    tags:['melee','charge'],  hp:65,  atk:13, spd:'SLOW',   def:4, ability:'Lunges at 4.5× speed. 5-second charge cooldown.' },
+  { type:'mage',     name:'MAGE',     tags:['ranged','magic'],  hp:18,  atk:8,  spd:'SLOW',   def:0, ability:'Fires magic bolts that inflict burn (3 dmg/s, 4s).' },
+  { type:'warden',   name:'WARDEN',   tags:['boss','p2'],       hp:200, atk:16, spd:'NORMAL', def:5, ability:'Boss. Enrages at 40% HP — speed ×1.45, Phase 2.' },
+  { type:'goblin',   name:'ELITE',    tags:['elite'],           hp:16,  atk:4,  spd:'FAST',   def:0,
+    ability:'10% spawn chance. ×1.6 HP · ×1.4 ATK · Gold crown.', makeElite:true },
+  { type:'troll',    name:'CHAMPION', tags:['champion'],        hp:87,  atk:14, spd:'SLOW',   def:2,
+    ability:'One per floor from Floor 2. ×2.5 HP · ×1.8 ATK · Rare guaranteed drop.', makeChampion:true },
+];
+
+const TAG_LABELS = {
+  melee:'melee', ranged:'ranged', magic:'magic', poison:'poison',
+  phase:'phase', tank:'tank', charge:'charge',
+  boss:'boss', elite:'elite', champion:'champion', p2:'phase 2'
+};
+
+// ── Single shared WebGL renderer (avoids context limit) ───────────────────────
+const masterGL = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+masterGL.setSize(RW, RH);
+masterGL.toneMapping = THREE.ACESFilmicToneMapping;
+masterGL.toneMappingExposure = 1.05;
+masterGL.domElement.style.display = 'none';
+document.body.appendChild(masterGL.domElement);
+
+// Single camera, repositioned per-enemy each frame
+const cam = new THREE.PerspectiveCamera(55, CW / CH, 0.05, 20);
+
+// ── Build all cards ───────────────────────────────────────────────────────────
+const allItems = CATALOG.map(entry => {
+  const isBoss = (entry.type === 'warden');
+
+  // Scene
+  const scene = new THREE.Scene();
+  const bgCol = entry.tags.includes('boss')     ? 0x0e0009
+              : entry.tags.includes('champion') ? 0x0e0003
+              : entry.tags.includes('elite')    ? 0x0e0900
+              : 0x0d1020;
+  scene.background = new THREE.Color(bgCol);
+
+  // Bright lighting
+  scene.add(new THREE.AmbientLight(0xaabbdd, 1.8));
+
+  const key = new THREE.PointLight(0xfff0dd, 7.0, 14, 1.6);
+  key.position.set(1.4, 2.8, 2.6); scene.add(key);
+
+  const fill = new THREE.PointLight(0x6688cc, 2.5, 10, 2);
+  fill.position.set(-1.6, 1.2, 1.6); scene.add(fill);
+
+  const rim = new THREE.PointLight(0x9955cc, 1.4, 8, 2);
+  rim.position.set(0, 2.2, -2.0); scene.add(rim);
+
+  const ground = new THREE.PointLight(0x334466, 1.0, 5, 2);
+  ground.position.set(0, -0.5, 0.5); scene.add(ground);
+
+  // Ground disc
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(0.65, 24),
+    new THREE.MeshLambertMaterial({ color: bgCol === 0x0d1020 ? 0x10141e : 0x0c0a14 })
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.y = 0.001;
+  scene.add(disc);
+
+  // Enemy mesh
+  const e = new Enemy(scene, 0, 0, entry.type, 1);
+  e.mesh.rotation.y = 0.35;
+  if (entry.makeElite)    e._makeElite();
+  if (entry.makeChampion) e._makeChampion();
+
+  // Display canvas (2D — receives copies from master renderer)
+  const canvas2d = document.createElement('canvas');
+  canvas2d.width  = RW;
+  canvas2d.height = RH;
+  canvas2d.style.width  = CW + 'px';
+  canvas2d.style.height = CH + 'px';
+  canvas2d.style.display = 'block';
+
+  // Card DOM
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.appendChild(canvas2d);
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'card-name';
+  nameEl.textContent = entry.name;
+  body.appendChild(nameEl);
+
+  const tagsEl = document.createElement('div');
+  tagsEl.className = 'card-tags';
+  entry.tags.forEach(t => {
+    const span = document.createElement('span');
+    span.className = `tag ${t}`;
+    span.textContent = TAG_LABELS[t] ?? t;
+    tagsEl.appendChild(span);
+  });
+  body.appendChild(tagsEl);
+
+  const stats = document.createElement('div');
+  stats.className = 'stat-row';
+  stats.innerHTML = `HP <span class="stat-val">${entry.hp}</span> &nbsp;
+                     ATK <span class="stat-val">${entry.atk}</span> &nbsp;
+                     DEF <span class="stat-val">${entry.def}</span> &nbsp;
+                     SPD <span class="stat-val">${entry.spd}</span>`;
+  body.appendChild(stats);
+
+  const ab = document.createElement('div');
+  ab.className = 'ability';
+  ab.textContent = entry.ability;
+  body.appendChild(ab);
+
+  card.appendChild(body);
+  document.getElementById('grid').appendChild(card);
+
+  return { scene, mesh: e.mesh, canvas2d, isBoss, isChampion: !!entry.makeChampion };
+});
+
+// ── Animation loop ─────────────────────────────────────────────────────────────
+let lastT = 0;
+function animate(now) {
+  requestAnimationFrame(animate);
+  const t = now * 0.001;
+
+  allItems.forEach(({ scene, mesh, canvas2d, isBoss, isChampion }, i) => {
+    // Idle bob + slow yaw rock
+    mesh.position.y = Math.sin(t * 1.8 + i * 0.7) * 0.025;
+    mesh.rotation.y = 0.35 + Math.sin(t * 0.22 + i * 1.1) * 0.30;
+
+    // Limb idle sway
+    const limbs = mesh.userData.limbs;
+    if (limbs) {
+      limbs.armL.rotation.x = Math.sin(t * 0.9 + i)          * 0.14;
+      limbs.armR.rotation.x = Math.sin(t * 0.9 + i + Math.PI) * 0.14;
+      limbs.legL.rotation.x = Math.sin(t * 0.6 + i)           * 0.07;
+      limbs.legR.rotation.x = Math.sin(t * 0.6 + i + Math.PI) * 0.07;
+    }
+    // Spider leg wave
+    const sl = mesh.userData.spiderLegs;
+    if (sl) sl.forEach(({ leg, side, idx: li }) => {
+      leg.rotation.z = side * (0.62 + Math.sin(t * 2.5 + li * 1.4 + (side < 0 ? Math.PI : 0)) * 0.22);
+    });
+
+    // Position camera per enemy — champion is 1.65× scaled so needs extra pullback
+    const camY = isBoss ? 1.2 : isChampion ? 1.5  : 0.88;
+    const camZ = isBoss ? 3.4 : isChampion ? 5.0  : 2.5;
+    const atY  = isBoss ? 0.9 : isChampion ? 1.10 : 0.68;
+    cam.position.set(0, camY, camZ);
+    cam.lookAt(0, atY, 0);
+    cam.aspect = CW / CH;
+    cam.updateProjectionMatrix();
+
+    // Render to master, then blit to this card's 2D canvas
+    masterGL.render(scene, cam);
+    canvas2d.getContext('2d').drawImage(masterGL.domElement, 0, 0, RW, RH);
+  });
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
